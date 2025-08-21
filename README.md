@@ -1,4 +1,5 @@
-# ResonitePSVR2
+<p align="center"><img src="https://github.com/tabithamoon/ResonitePSVR2/blob/35f9aa857aca1230f785b33edf2a02657b54426e/assets/Icon.png?raw=true" width="128" height="128"></p>
+<h1 align="center">ResonitePSVR2</h1>
 
 A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that enables PlayStation VR2 specific features, via whatdahopper's [PSVR2Toolkit](https://github.com/BnuuySolutions/PSVR2Toolkit).
 
