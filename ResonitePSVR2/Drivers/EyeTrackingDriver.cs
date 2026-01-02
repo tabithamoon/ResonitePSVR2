@@ -7,8 +7,13 @@ using ResonitePSVR2.ToolkitInterop;
 namespace ResonitePSVR2;
 
 public class EyeTrackingDriver : IInputDriver {
-	private IpcProtocol.GazeVector3 _rightEyeLastValidGaze, _leftEyeLastValidGaze;
+	private GazeVector3 _rightEyeLastValidGaze, _leftEyeLastValidGaze;
 	private float _rightEyeLastValidDilation, _leftEyeLastValidDilation;
+
+	private const int _noiseFilterSamples = 15;
+	private LowPassFilter _rightEyeOpenLowPass = new(_noiseFilterSamples);
+	private LowPassFilter _leftEyeOpenLowPass = new(_noiseFilterSamples);
+
 	private readonly object _lock = new();
 	private InputInterface? input;
 	private Eyes? eyes;
@@ -104,9 +109,21 @@ public class EyeTrackingDriver : IInputDriver {
 		} else {
 			dest.RightEye.PupilDiameter = _rightEyeLastValidDilation / 1000;
 		}
-		
-		dest.LeftEye.Openness = leftEyeData.blink ? 0 : 1;
-		dest.RightEye.Openness = rightEyeData.blink ? 0 : 1;
+
+		if (leftEyeData.isBlinkValid) {
+			float leftOpenness = eyeTrackingData.leftEye.isOpenEnabled ? eyeTrackingData.leftEye.open : (eyeTrackingData.leftEye.blink ? 0 : 1);
+			if (_leftEyeOpenLowPass != null) {
+				leftOpenness = _leftEyeOpenLowPass.FilterValue(leftOpenness);
+			}
+			dest.LeftEye.Openness = leftOpenness;
+		}
+		if (rightEyeData.isBlinkValid) {
+			float rightOpenness = eyeTrackingData.rightEye.isOpenEnabled ? eyeTrackingData.rightEye.open : (eyeTrackingData.rightEye.blink ? 0 : 1);
+			if (_rightEyeOpenLowPass != null) {
+				rightOpenness = _rightEyeOpenLowPass.FilterValue(rightOpenness);
+			}
+			dest.RightEye.Openness = rightOpenness;
+		}
 		
 		dest.LeftEye.IsTracking = true;
 		dest.RightEye.IsTracking = true;
