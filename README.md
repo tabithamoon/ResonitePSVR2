@@ -4,7 +4,7 @@
 A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that enables PlayStation VR2 specific features, via whatdahopper's [PSVR2Toolkit](https://github.com/BnuuySolutions/PSVR2Toolkit).
 
 ## Currently supported features
-- Eye tracking (per-eye gaze, binary per-eye blink, dilation)
+- Eye tracking (per-eye gaze, binary per-eye blink, dilation, eyelid estimation if enabled in driver)
 
 ## Installation
 1. Install [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader).
