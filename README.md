@@ -16,3 +16,4 @@ Code for this mod was largely based on:
 - BlueCyro's [Impressive](https://github.com/BlueCyro/Impressive)
 - hazre's [VRCFTReceiver](https://github.com/hazre/VRCFTReceiver)
 - The official [PSVR2Toolkit VRCFT Module](https://github.com/BnuuySolutions/PSVR2Toolkit.VRCFT)
+- hantabaru1014's [ResoniteBaballoniaEyeTracking](https://github.com/hantabaru1014/ResoniteBaballoniaEyeTracking)
