@@ -11,89 +11,116 @@ public class EyeTrackingDriver : IInputDriver {
 	private LowPassFilter _rightEyeOpenLowPass = new(_noiseFilterSamples);
 	private LowPassFilter _leftEyeOpenLowPass = new(_noiseFilterSamples);
 
-	private readonly object _lock = new();
-	private InputInterface? input;
-	private Eyes? eyes;
+	private CommandDataServerGazeDataResult2 _gazeData;
+	private Eyes? _eyes;
 	
-	public int UpdateOrder => 150; // not even cyro knows what this does... I'm but a mere mortal
+	public int UpdateOrder => 100;
 	
 	public void CollectDeviceInfos(DataTreeList list) {
-		ResonitePSVR2.Msg("Collecting PSVR2 device info");
-
 		DataTreeDictionary eyeDict = new();
-		eyeDict.Add("Name", "PS VR2 Eye Datastream");
+		eyeDict.Add("Name", "PS VR2 Eye Tracking Data");
 		eyeDict.Add("Type", "Eye Tracking");
 		eyeDict.Add("Model", "PlayStation VR2");
-		
 		list.Add(eyeDict);
+		
+		ResonitePSVR2.Msg("Eye tracking data stream registered.");
 	}
 
-	public void RegisterInputs(InputInterface i) {
-		input = i;
-		eyes = new(input, "PlayStation VR2", true);
+	public void RegisterInputs(InputInterface input) {
+		_eyes = new(input, "PlayStation VR2", true);
 	}
 
 	public void UpdateInputs(float deltaTime) {
-		if (eyes != null && input != null) {
-			eyes.IsDeviceActive = true;
-			eyes.IsEyeTrackingActive = true;
+		if (_eyes is null) return;
+		if (!Engine.Current.InputInterface.VR_Active || !ResonitePSVR2.EnableEyeTracking) {
+			_eyes.IsEyeTrackingActive = false;
+			return;
+		}
 
-			lock (_lock) {
-				UpdateEyes(eyes);
-				eyes.ComputeCombinedEyeParameters();
-				eyes.FinishUpdate();
-			}
+		_eyes.IsEyeTrackingActive = true;
+		_gazeData = IpcClient.Instance().RequestEyeTrackingData();
+
+		// Updates left, right and combined
+		UpdateEyes(_eyes, _gazeData.leftEye, _gazeData.rightEye);
+		
+		_eyes.ComputeCombinedEyeParameters();
+		_eyes.ConvergenceDistance = 0f;
+		_eyes.Timestamp += deltaTime;
+		_eyes.FinishUpdate();
+	}
+
+	// Bulk of the work here
+	private void UpdateEyes(Eyes eyes, GazeEyeResult2 leftEye, GazeEyeResult2 rightEye) {
+		eyes.LeftEye.IsDeviceActive = true;
+		eyes.RightEye.IsDeviceActive = true;
+		eyes.CombinedEye.IsDeviceActive = true;
+		
+		// Gazes
+		if (leftEye.isGazeDirValid) {
+			eyes.LeftEye.IsTracking = true;
+			eyes.LeftEye.UpdateWithDirection(GetGazeDirection(leftEye));
+		}
+
+		if (rightEye.isGazeDirValid) {
+			eyes.RightEye.IsTracking = true;
+			eyes.RightEye.UpdateWithDirection(GetGazeDirection(rightEye));
+		}
+
+		if (leftEye.isGazeDirValid && rightEye.isGazeDirValid) {
+			eyes.CombinedEye.IsTracking = true;
+			eyes.CombinedEye.UpdateWithDirection(
+				MathX.Average(GetGazeDirection(leftEye), GetGazeDirection(rightEye))
+			);
+		}
+		
+		// Pupil dilation
+		if (leftEye.isPupilDiaValid)
+			eyes.LeftEye.PupilDiameter = leftEye.pupilDiaMm / 1000;
+		
+		if (rightEye.isPupilDiaValid)
+			eyes.RightEye.PupilDiameter = rightEye.pupilDiaMm / 1000;
+
+		if (leftEye.isPupilDiaValid && rightEye.isPupilDiaValid)
+			eyes.CombinedEye.PupilDiameter = MathX.Average(leftEye.pupilDiaMm, rightEye.pupilDiaMm) / 1000;
+		
+		// Openness
+		// Ideally I'd replace the smoothing with the game's built in lerping solutions, instead of grabbing the one from the VRCFT module.
+		// Alas, this is a fixup until the full PSVR2TK release, where we'll get proper expressions ;P
+		// The smoothing is force enabled if using eyelid estimation.
+		float leftOpenness = 0, rightOpenness = 0;
+		if (leftEye.isBlinkValid) {
+			if (ResonitePSVR2.EnableEyeLidEstimation && leftEye.isOpenEnabled)
+				leftOpenness = leftEye.open;
+			else
+				leftOpenness = leftEye.blink ? 0 : 1;
+			
+			if (ResonitePSVR2.EnableBlinkFiltering || ResonitePSVR2.EnableEyeLidEstimation)
+				leftOpenness = _leftEyeOpenLowPass.FilterValue(leftOpenness);
+			
+			eyes.LeftEye.Openness = leftOpenness;
+		}
+
+		if (rightEye.isBlinkValid) {
+			if (ResonitePSVR2.EnableEyeLidEstimation && rightEye.isOpenEnabled)
+				rightOpenness = rightEye.open;
+			else
+				rightOpenness = rightEye.blink ? 0 : 1;
+			
+			if (ResonitePSVR2.EnableBlinkFiltering)
+				rightOpenness = _rightEyeOpenLowPass.FilterValue(rightOpenness);
+			
+			eyes.RightEye.Openness = rightOpenness;
+		}
+
+		if (leftEye.isBlinkValid && rightEye.isBlinkValid) {
+			eyes.CombinedEye.Openness = MathX.Average(leftOpenness, rightOpenness);
 		}
 	}
 
-	private void UpdateEyes(Eyes dest) {
-		var eyeTrackingData = IpcClient.Instance().RequestEyeTrackingData();
-		var leftEyeData = eyeTrackingData.leftEye;
-		var rightEyeData = eyeTrackingData.rightEye;
-		
-		// left eye data
-		if (leftEyeData.isGazeDirValid) {
-			dest.LeftEye.UpdateWithRotation(floatQ.LookRotation(
-				new float3(-leftEyeData.gazeDirNorm.x, leftEyeData.gazeDirNorm.y, leftEyeData.gazeDirNorm.z)
-			));
-		}
-		
-		if (leftEyeData.isPupilDiaValid) {
-			dest.LeftEye.PupilDiameter = leftEyeData.pupilDiaMm / 1000; // Divide by 1000 to turn millimeter into meters
-		}
-		
-		// right eye data
-		if (rightEyeData.isGazeDirValid) {
-			dest.RightEye.UpdateWithRotation(floatQ.LookRotation(
-				new float3(-rightEyeData.gazeDirNorm.x, rightEyeData.gazeDirNorm.y, rightEyeData.gazeDirNorm.z)
-			));
-		}
-		
-		if (rightEyeData.isPupilDiaValid) {
-			dest.RightEye.PupilDiameter = rightEyeData.pupilDiaMm / 1000;
-		}
-
-		// Ideally I'd replace the smoothing with the game's built in lerping solutions, instead of grabbing the one from the VRCFT module.
-		// Alas, this is a fixup until the full PSVR2TK release, where we'll get proper expressions ;P
-		if (leftEyeData.isBlinkValid) {
-			float leftOpenness;
-			if (ResonitePSVR2.EnableEyeLidEstimation && eyeTrackingData.leftEye.isOpenEnabled) leftOpenness = eyeTrackingData.leftEye.open;
-			else leftOpenness = eyeTrackingData.leftEye.blink ? 0 : 1;
-			
-			if (ResonitePSVR2.EnableBlinkFiltering) leftOpenness = _leftEyeOpenLowPass.FilterValue(leftOpenness);
-			dest.LeftEye.Openness = leftOpenness;
-		}
-		
-		if (rightEyeData.isBlinkValid) {
-			float rightOpenness;
-			if (ResonitePSVR2.EnableEyeLidEstimation && eyeTrackingData.rightEye.isOpenEnabled) rightOpenness = eyeTrackingData.rightEye.open;
-			else rightOpenness = eyeTrackingData.rightEye.blink ? 0 : 1;
-			
-			if (ResonitePSVR2.EnableBlinkFiltering) rightOpenness = _rightEyeOpenLowPass.FilterValue(rightOpenness);
-			dest.RightEye.Openness = rightOpenness;
-		}
-		
-		dest.LeftEye.IsTracking = true;
-		dest.RightEye.IsTracking = true;
+	private float3 GetGazeDirection(GazeEyeResult2 trackingData) {
+		return new float3(-trackingData.gazeDirNorm.x,
+			trackingData.gazeDirNorm.y,
+			trackingData.gazeDirNorm.z
+		);
 	}
 }
