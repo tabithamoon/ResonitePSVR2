@@ -7,9 +7,6 @@ using ResonitePSVR2.ToolkitInterop;
 namespace ResonitePSVR2;
 
 public class EyeTrackingDriver : IInputDriver {
-	private GazeVector3 _rightEyeLastValidGaze, _leftEyeLastValidGaze;
-	private float _rightEyeLastValidDilation, _leftEyeLastValidDilation;
-
 	private const int _noiseFilterSamples = 15;
 	private LowPassFilter _rightEyeOpenLowPass = new(_noiseFilterSamples);
 	private LowPassFilter _leftEyeOpenLowPass = new(_noiseFilterSamples);
@@ -62,18 +59,10 @@ public class EyeTrackingDriver : IInputDriver {
 			dest.LeftEye.UpdateWithRotation(floatQ.LookRotation(
 				new float3(-leftEyeData.gazeDirNorm.x, leftEyeData.gazeDirNorm.y, leftEyeData.gazeDirNorm.z)
 			));
-			_leftEyeLastValidGaze = leftEyeData.gazeDirNorm;
-		} else {
-			dest.LeftEye.UpdateWithRotation(floatQ.LookRotation(
-				new float3(-_leftEyeLastValidGaze.x, _leftEyeLastValidGaze.y, _leftEyeLastValidGaze.z)
-			));
 		}
 		
 		if (leftEyeData.isPupilDiaValid) {
 			dest.LeftEye.PupilDiameter = leftEyeData.pupilDiaMm / 1000; // Divide by 1000 to turn millimeter into meters
-			_leftEyeLastValidDilation = leftEyeData.pupilDiaMm;
-		} else {
-			dest.LeftEye.PupilDiameter = _leftEyeLastValidDilation / 1000;
 		}
 		
 		// right eye data
@@ -81,18 +70,10 @@ public class EyeTrackingDriver : IInputDriver {
 			dest.RightEye.UpdateWithRotation(floatQ.LookRotation(
 				new float3(-rightEyeData.gazeDirNorm.x, rightEyeData.gazeDirNorm.y, rightEyeData.gazeDirNorm.z)
 			));
-			_rightEyeLastValidGaze = rightEyeData.gazeDirNorm;
-		} else {
-			dest.RightEye.UpdateWithRotation(floatQ.LookRotation(
-				new float3(-_rightEyeLastValidGaze.x, _rightEyeLastValidGaze.y, _rightEyeLastValidGaze.z)
-			));
 		}
 		
 		if (rightEyeData.isPupilDiaValid) {
 			dest.RightEye.PupilDiameter = rightEyeData.pupilDiaMm / 1000;
-			_rightEyeLastValidDilation = rightEyeData.pupilDiaMm;
-		} else {
-			dest.RightEye.PupilDiameter = _rightEyeLastValidDilation / 1000;
 		}
 
 		// Ideally I'd replace the smoothing with the game's built in lerping solutions, instead of grabbing the one from the VRCFT module.
