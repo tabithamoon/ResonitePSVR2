@@ -18,7 +18,7 @@ public partial class ResonitePSVR2 : ResoniteMod {
 		Harmony harmony = new Harmony("com.tabbynet.ResonitePSVR2");
 		Config = GetConfiguration();
 		Config?.Save();	
-		Msg("Loaded ResonitePSVR2");
+
 		harmony.PatchAll();
 		Engine engine = Engine.Current;
 		engine.RunPostInit(() => {
