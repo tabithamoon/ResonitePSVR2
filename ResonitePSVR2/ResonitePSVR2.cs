@@ -27,6 +27,9 @@ public partial class ResonitePSVR2 : ResoniteMod {
 				Msg("Failed to connect to PSVR2Tookit.");
 				return;
 			}
+
+			// Stop IPC client on engine shutdown
+			engine.OnShutdown += () => ToolkitInterop.IpcClient.Instance().Stop();
 			
 			try {
 				if (EnableEyeTracking) engine.InputInterface.RegisterInputDriver(new EyeTrackingDriver());

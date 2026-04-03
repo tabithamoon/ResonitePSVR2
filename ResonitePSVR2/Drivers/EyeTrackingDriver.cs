@@ -30,10 +30,7 @@ public class EyeTrackingDriver : IInputDriver {
 
 	public void RegisterInputs(InputInterface i) {
 		input = i;
-		eyes = new(input, "PS VR2 Datastream", true);
-		
-		// Register to listen for events
-		i.Engine.OnShutdown += Shutdown;
+		eyes = new(input, "PlayStation VR2", true);
 	}
 
 	public void UpdateInputs(float deltaTime) {
@@ -98,10 +95,5 @@ public class EyeTrackingDriver : IInputDriver {
 		
 		dest.LeftEye.IsTracking = true;
 		dest.RightEye.IsTracking = true;
-	}
-
-	private void Shutdown() {
-		// Tear down PSVR2Toolkit IPC client
-		IpcClient.Instance().Stop();
 	}
 }
