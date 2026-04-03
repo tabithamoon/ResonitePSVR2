@@ -12,6 +12,9 @@ A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoade
 1. Start the game.
 
 ## Credits
+Thank you to contributors:
+- [noblereign](https://github.com/noblereign)
+
 Code for this mod was largely based on:
 - BlueCyro's [Impressive](https://github.com/BlueCyro/Impressive)
 - hazre's [VRCFTReceiver](https://github.com/hazre/VRCFTReceiver)
