@@ -117,14 +117,6 @@ public class EyeTrackingDriver : IInputDriver {
 		
 		dest.LeftEye.IsTracking = true;
 		dest.RightEye.IsTracking = true;
-		
-		// unsupported data
-		dest.LeftEye.Widen = 0f;
-		dest.RightEye.Widen = 0f;
-		dest.LeftEye.Squeeze = 0f;
-		dest.RightEye.Squeeze = 0f;
-		dest.LeftEye.InnerBrowVertical = 0f;
-		dest.RightEye.InnerBrowVertical = 0f;
 	}
 
 	private void Shutdown() {
