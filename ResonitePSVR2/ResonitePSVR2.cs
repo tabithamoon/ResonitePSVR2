@@ -22,10 +22,16 @@ public partial class ResonitePSVR2 : ResoniteMod {
 		harmony.PatchAll();
 		Engine engine = Engine.Current;
 		engine.RunPostInit(() => {
+			Msg("Loaded ResonitePSVR2.");
+			if (!ToolkitInterop.IpcClient.Instance().Start()) {
+				Msg("Failed to connect to PSVR2Tookit.");
+				return;
+			}
+			
 			try {
-				engine.InputInterface.RegisterInputDriver(new EyeTrackingDriver());
+				if (EnableEyeTracking) engine.InputInterface.RegisterInputDriver(new EyeTrackingDriver());
 			} catch (Exception ex) {
-				Msg($"Failed to initialize ResonitePSVR2! Exception: {ex}");
+				Msg($"Failed to initialize eye tracking! Exception message: {ex.Message}");
 			}
 		});
 	}

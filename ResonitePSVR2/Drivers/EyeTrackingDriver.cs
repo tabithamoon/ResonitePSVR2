@@ -33,35 +33,21 @@ public class EyeTrackingDriver : IInputDriver {
 
 	public void RegisterInputs(InputInterface i) {
 		input = i;
-		ResonitePSVR2.Msg("Attempting to connect to PSVR2Toolkit");
-
-		try {
-			if (IpcClient.Instance().Start()) {
-				ResonitePSVR2.Msg("Connected to PSVR2Toolkit");
-				eyes = new(input, "PS VR2 Datastream", true);
-				
-				// Register to listen for events
-				i.Engine.OnShutdown += Shutdown;
-			} else {
-				ResonitePSVR2.Msg("Failed to connect to PSVR2Toolkit!");
-			}
-		} catch (Exception ex) {
-			ResonitePSVR2.Msg($"Failed to connect to PSVR2Toolkit! Exception: {ex}");
-		}
+		eyes = new(input, "PS VR2 Datastream", true);
+		
+		// Register to listen for events
+		i.Engine.OnShutdown += Shutdown;
 	}
 
 	public void UpdateInputs(float deltaTime) {
 		if (eyes != null && input != null) {
-			bool eyeTrackingEnabled = ResonitePSVR2.EnableEyeTracking;
-			eyes.IsDeviceActive = eyeTrackingEnabled;
-			eyes.IsEyeTrackingActive = eyeTrackingEnabled;
+			eyes.IsDeviceActive = true;
+			eyes.IsEyeTrackingActive = true;
 
 			lock (_lock) {
-				if (eyeTrackingEnabled) {
-					UpdateEyes(eyes);
-					eyes.ComputeCombinedEyeParameters();
-					eyes.FinishUpdate();
-				}
+				UpdateEyes(eyes);
+				eyes.ComputeCombinedEyeParameters();
+				eyes.FinishUpdate();
 			}
 		}
 	}
@@ -70,7 +56,7 @@ public class EyeTrackingDriver : IInputDriver {
 		var eyeTrackingData = IpcClient.Instance().RequestEyeTrackingData();
 		var leftEyeData = eyeTrackingData.leftEye;
 		var rightEyeData = eyeTrackingData.rightEye;
-
+		
 		// left eye data
 		if (leftEyeData.isGazeDirValid) {
 			dest.LeftEye.UpdateWithRotation(floatQ.LookRotation(
@@ -110,10 +96,10 @@ public class EyeTrackingDriver : IInputDriver {
 		}
 
 		// Ideally I'd replace the smoothing with the game's built in lerping solutions, instead of grabbing the one from the VRCFT module.
-		// Alas, this is a fixup until the full PSVR2TK release ;P
+		// Alas, this is a fixup until the full PSVR2TK release, where we'll get proper expressions ;P
 		if (leftEyeData.isBlinkValid) {
 			float leftOpenness;
-			if (ResonitePSVR2.EnableEyeLidEstimation) leftOpenness = eyeTrackingData.leftEye.open;
+			if (ResonitePSVR2.EnableEyeLidEstimation && eyeTrackingData.leftEye.isOpenEnabled) leftOpenness = eyeTrackingData.leftEye.open;
 			else leftOpenness = eyeTrackingData.leftEye.blink ? 0 : 1;
 			
 			if (ResonitePSVR2.EnableBlinkFiltering) leftOpenness = _leftEyeOpenLowPass.FilterValue(leftOpenness);
@@ -122,7 +108,7 @@ public class EyeTrackingDriver : IInputDriver {
 		
 		if (rightEyeData.isBlinkValid) {
 			float rightOpenness;
-			if (ResonitePSVR2.EnableEyeLidEstimation) rightOpenness = eyeTrackingData.rightEye.open;
+			if (ResonitePSVR2.EnableEyeLidEstimation && eyeTrackingData.rightEye.isOpenEnabled) rightOpenness = eyeTrackingData.rightEye.open;
 			else rightOpenness = eyeTrackingData.rightEye.blink ? 0 : 1;
 			
 			if (ResonitePSVR2.EnableBlinkFiltering) rightOpenness = _rightEyeOpenLowPass.FilterValue(rightOpenness);
