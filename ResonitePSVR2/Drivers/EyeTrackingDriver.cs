@@ -91,9 +91,6 @@ public class EyeTrackingDriver : IInputDriver {
 			if (leftEye.isBlinkValid) _leftOpenTarget = leftEye.blink ? 0f : 1f;
 			if (rightEye.isBlinkValid) _rightOpenTarget = rightEye.blink ? 0f : 1f;
 		}
-		ResonitePSVR2.Msg("Past target set");
-		ResonitePSVR2.Msg($"leftOpenTarget: {_leftOpenTarget}, rightOpenTarget: {_rightOpenTarget}");
-		ResonitePSVR2.Msg($"leftOpen: {_leftOpen}, rightOpen: {_rightOpen}");
 
 		if (ResonitePSVR2.EnableBlinkFiltering) {
 			if (!_lerpInitialized) {
