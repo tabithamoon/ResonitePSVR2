@@ -92,7 +92,8 @@ public class EyeTrackingDriver : IInputDriver {
 			if (rightEye.isBlinkValid) _rightOpenTarget = rightEye.blink ? 0f : 1f;
 		}
 
-		if (ResonitePSVR2.EnableBlinkFiltering) {
+		// Check if userspace exists before getting deltas from it. Oops!
+		if (ResonitePSVR2.EnableBlinkFiltering && Userspace.Current != null) {
 			if (!_lerpInitialized) {
 				_leftIntermediate = _leftOpenTarget;
 				_rightIntermediate = _rightOpenTarget;
