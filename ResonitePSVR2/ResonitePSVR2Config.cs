@@ -16,5 +16,7 @@ public partial class ResonitePSVR2 : ResoniteMod {
 	internal static ModConfigurationKey<bool> EnableEyeLidEstimation_Config = new("eyelid_estimation", "Enable eye lid estimation", () => false );
 	public static bool EnableEyeLidEstimation => Config!.GetValue(EnableEyeLidEstimation_Config);
 	
-	
+	[AutoRegisterConfigKey]
+	internal static ModConfigurationKey<float> BlinkFilteringSpeed_Config = new("blink_filtering_speed", "Blink filtering speed", () => 20f);
+	public static float BlinkFilteringSpeed => Config!.GetValue(BlinkFilteringSpeed_Config);
 }

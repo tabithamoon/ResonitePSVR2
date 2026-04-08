@@ -7,14 +7,14 @@ using ResonitePSVR2.ToolkitInterop;
 namespace ResonitePSVR2;
 
 public class EyeTrackingDriver : IInputDriver {
-	private const int _noiseFilterSamples = 15;
-	private LowPassFilter _rightEyeOpenLowPass = new(_noiseFilterSamples);
-	private LowPassFilter _leftEyeOpenLowPass = new(_noiseFilterSamples);
-
-	private CommandDataServerGazeDataResult2 _gazeData;
-	private Eyes? _eyes;
+	// Blink smoothing lerp vars
+	// There's probably a better way to do this...
+	private float _leftIntermediate, _rightIntermediate, _leftOpen, _rightOpen, _leftOpenTarget, _rightOpenTarget;
+	private bool _lerpInitialized;
 	
+	private CommandDataServerGazeDataResult2 _gazeData;
 	public int UpdateOrder => 100;
+	private Eyes? _eyes;
 	
 	public void CollectDeviceInfos(DataTreeList list) {
 		DataTreeDictionary eyeDict = new();
@@ -84,41 +84,51 @@ public class EyeTrackingDriver : IInputDriver {
 			eyes.CombinedEye.PupilDiameter = MathX.Average(leftEye.pupilDiaMm, rightEye.pupilDiaMm) / 1000;
 		
 		// Openness
-		// Ideally I'd replace the smoothing with the game's built in lerping solutions, instead of grabbing the one from the VRCFT module.
-		// Alas, this is a fixup until the full PSVR2TK release, where we'll get proper expressions ;P
-		// The smoothing is force enabled if using eyelid estimation.
-		float leftOpenness = 0, rightOpenness = 0;
-		if (leftEye.isBlinkValid) {
-			if (ResonitePSVR2.EnableEyeLidEstimation && leftEye.isOpenEnabled)
-				leftOpenness = leftEye.open;
-			else
-				leftOpenness = leftEye.blink ? 0 : 1;
+		if (ResonitePSVR2.EnableEyeLidEstimation && leftEye.isOpenEnabled && rightEye.isOpenEnabled) {
+			_leftOpenTarget = leftEye.open;
+			_rightOpenTarget = rightEye.open;
+		} else {
+			if (leftEye.isBlinkValid) _leftOpenTarget = leftEye.blink ? 0f : 1f;
+			if (rightEye.isBlinkValid) _rightOpenTarget = rightEye.blink ? 0f : 1f;
+		}
+		ResonitePSVR2.Msg("Past target set");
+		ResonitePSVR2.Msg($"leftOpenTarget: {_leftOpenTarget}, rightOpenTarget: {_rightOpenTarget}");
+		ResonitePSVR2.Msg($"leftOpen: {_leftOpen}, rightOpen: {_rightOpen}");
+
+		if (ResonitePSVR2.EnableBlinkFiltering) {
+			if (!_lerpInitialized) {
+				_leftIntermediate = _leftOpenTarget;
+				_rightIntermediate = _rightOpenTarget;
+				_lerpInitialized = true;
+			}
 			
-			if (ResonitePSVR2.EnableBlinkFiltering || ResonitePSVR2.EnableEyeLidEstimation)
-				leftOpenness = _leftEyeOpenLowPass.FilterValue(leftOpenness);
-			
-			eyes.LeftEye.Openness = leftOpenness;
+			_leftOpen = MathX.SmoothLerp(
+				_leftOpen,
+				_leftOpenTarget,
+				ref _leftIntermediate,
+				Userspace.Current.Time.Delta * ResonitePSVR2.BlinkFilteringSpeed
+			);
+
+			_rightOpen = MathX.SmoothLerp(
+				_rightOpen,
+				_rightOpenTarget,
+				ref _rightIntermediate,
+				Userspace.Current.Time.Delta * ResonitePSVR2.BlinkFilteringSpeed
+			);
+		} else {
+			_lerpInitialized = false;
+			_leftOpen = _leftOpenTarget;
+			_rightOpen = _rightOpenTarget;
 		}
 
-		if (rightEye.isBlinkValid) {
-			if (ResonitePSVR2.EnableEyeLidEstimation && rightEye.isOpenEnabled)
-				rightOpenness = rightEye.open;
-			else
-				rightOpenness = rightEye.blink ? 0 : 1;
-			
-			if (ResonitePSVR2.EnableBlinkFiltering)
-				rightOpenness = _rightEyeOpenLowPass.FilterValue(rightOpenness);
-			
-			eyes.RightEye.Openness = rightOpenness;
-		}
-
-		if (leftEye.isBlinkValid && rightEye.isBlinkValid) {
-			eyes.CombinedEye.Openness = MathX.Average(leftOpenness, rightOpenness);
-		}
+		eyes.LeftEye.Openness = _leftOpen;
+		eyes.RightEye.Openness = _rightOpen;
+		eyes.CombinedEye.Openness = MathX.Average(_leftOpen, _rightOpen);
 	}
 
 	private float3 GetGazeDirection(GazeEyeResult2 trackingData) {
-		return new float3(-trackingData.gazeDirNorm.x,
+		return new float3(
+			-trackingData.gazeDirNorm.x,
 			trackingData.gazeDirNorm.y,
 			trackingData.gazeDirNorm.z
 		);
