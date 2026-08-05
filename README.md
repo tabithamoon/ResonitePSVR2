@@ -4,12 +4,13 @@
 A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that enables PlayStation VR2 specific features, via whatdahopper's [PSVR2Toolkit](https://github.com/BnuuySolutions/PSVR2Toolkit).
 
 ## Currently supported features
-- Eye tracking (per-eye gaze, binary per-eye blink, dilation, eyelid estimation if enabled in driver)
+- Eye tracking (per-eye gaze, binary per-eye blink, dilation, optional binary blink filtering)
 
 ## Installation
 1. Install [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader).
-1. Place [ResonitePSVR2.dll](https://github.com/tabithamoon/ResonitePSVR2/releases/latest/download/ResonitePSVR2.dll) into your `rml_mods` folder. This folder should be at `C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_mods` for a default install. You can create it if it's missing, or if you launch the game once with ResoniteModLoader installed it will create this folder for you.
-1. Start the game.
+2. Place [ResonitePSVR2.dll](https://github.com/tabithamoon/ResonitePSVR2/releases/latest/download/ResonitePSVR2.dll) into your `rml_mods` folder. This folder should be at `C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_mods` for a default install. You can create it if it's missing, or if you launch the game once with ResoniteModLoader installed it will create this folder for you.
+3. Place [psvr2_toolkit_capi_loader.dll](https://github.com/tabithamoon/ResonitePSVR2/releases/latest/download/psvr2_toolkit_capi_loader.dll) (or [libpsvr2_toolkit_capi_loader.so](https://github.com/tabithamoon/ResonitePSVR2/releases/latest/download/libpsvr2_toolkit_capi_loader.so) for Linux) into your `rml_libs` folder.
+5. Start the game.
 
 ## Credits
 Thank you to contributors:
