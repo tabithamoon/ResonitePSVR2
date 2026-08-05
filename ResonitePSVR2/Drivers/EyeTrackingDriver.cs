@@ -11,6 +11,7 @@ public class EyeTrackingDriver : IInputDriver {
 	private float _leftIntermediate, _rightIntermediate, _leftOpen, _rightOpen, _leftOpenTarget, _rightOpenTarget;
 	private bool _lerpInitialized;
 	
+	private static float3 _invalidGazeDir = new (0f); // Invalid float3 for gaze direction check
 	private hmd2_gaze_status_t _gazeStatus;
 	public int UpdateOrder => 100;
 	private Eyes? _eyes;
@@ -61,13 +62,23 @@ public class EyeTrackingDriver : IInputDriver {
 		
 		// Gazes
 		if (_gazeStatus.wearable.left.is_gaze_origin_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE) {
-			eyes.LeftEye.IsTracking = true;
-			eyes.LeftEye.UpdateWithDirection(GetGazeDirection(gazeData.left.gaze_dir_norm));
+			float3 gazeDir = GetGazeDirection(gazeData.left.gaze_dir_norm);
+			if (gazeDir != _invalidGazeDir) {
+				eyes.LeftEye.IsTracking = true;
+				eyes.LeftEye.UpdateWithDirection(gazeDir);
+			} else {
+				eyes.LeftEye.IsTracking = false;
+			}
 		}
 
 		if (_gazeStatus.wearable.right.is_gaze_origin_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE) {
-			eyes.RightEye.IsTracking = true;
-			eyes.RightEye.UpdateWithDirection(GetGazeDirection(gazeData.right.gaze_dir_norm));
+			float3 gazeDir = GetGazeDirection(gazeData.right.gaze_dir_norm);
+			if (gazeDir != _invalidGazeDir) {
+				eyes.RightEye.IsTracking = true;
+				eyes.RightEye.UpdateWithDirection(gazeDir);
+			} else {
+				eyes.RightEye.IsTracking = false;
+			}
 		}
 
 		if (_gazeStatus.wearable.is_gaze_origin_combined_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE) {
