@@ -403,13 +403,24 @@ namespace ResonitePSVR2.PSVR2Toolkit
 
                 try
                 {
+	                var asmPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+	                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+		                if (Win32LoadLibrary(asmPath + "\\..\\rml_libs\\psvr2_toolkit_capi_loader.dll") == IntPtr.Zero) {
+			                throw new DllNotFoundException();
+		                }
+	                } else {
+		                if (UnixDlopen(asmPath + "/../rml_libs/psvr2_toolkit_capi_loader.so", 2) == IntPtr.Zero) {
+			                throw new DllNotFoundException();
+		                }
+	                }
+	                
                     _moduleHandle = psvr2_toolkit_loader_get_module_handle();
                 }
                 catch (DllNotFoundException ex)
                 {
                     throw new DllNotFoundException(
                         "Could not load the loader library 'psvr2_toolkit_capi_loader'. " +
-                        "Make sure 'psvr2_toolkit_capi_loader.dll' is in your application directory or search path.", ex);
+                        "Make sure 'psvr2_toolkit_capi_loader.dll', or 'psvr2_toolkit_capi_loader.so' for Linux, is in rml_libs.", ex);
                 }
 
                 if (_moduleHandle == IntPtr.Zero)
@@ -483,10 +494,16 @@ namespace ResonitePSVR2.PSVR2Toolkit
                 }
             }
         }
-
+        
         [DllImport("kernel32.dll", EntryPoint = "GetProcAddress", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
         private static extern IntPtr Win32GetProcAddress(IntPtr hModule, string procName);
 
+        [DllImport("kernel32.dll", EntryPoint = "LoadLibrary", CharSet = CharSet.Ansi, SetLastError = true)]
+        private static extern IntPtr Win32LoadLibrary(string lpFileName);
+        
+        [DllImport("libdl", EntryPoint = "dlopen", CharSet = CharSet.Ansi)]
+        private static extern IntPtr UnixDlopen(string fileName, int flags);
+        
         [DllImport("libdl", EntryPoint = "dlsym", CharSet = CharSet.Ansi)]
         private static extern IntPtr UnixDlsym(IntPtr handle, string symbol);
 
