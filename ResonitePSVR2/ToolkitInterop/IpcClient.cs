@@ -409,7 +409,7 @@ namespace ResonitePSVR2.PSVR2Toolkit
 			                throw new DllNotFoundException();
 		                }
 	                } else {
-		                if (UnixDlopen(asmPath + "/../rml_libs/psvr2_toolkit_capi_loader.so", 2) == IntPtr.Zero) {
+		                if (UnixDlopen(asmPath + "/../rml_libs/libpsvr2_toolkit_capi_loader.so", 2) == IntPtr.Zero) {
 			                throw new DllNotFoundException();
 		                }
 	                }
