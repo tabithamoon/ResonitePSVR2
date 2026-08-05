@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace PSVR2Toolkit
+namespace ResonitePSVR2.PSVR2Toolkit
 {
     #region Enums
 
