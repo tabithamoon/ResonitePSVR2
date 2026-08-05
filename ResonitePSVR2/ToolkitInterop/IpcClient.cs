@@ -420,7 +420,7 @@ namespace ResonitePSVR2.PSVR2Toolkit
                 {
                     throw new DllNotFoundException(
                         "Could not load the loader library 'psvr2_toolkit_capi_loader'. " +
-                        "Make sure 'psvr2_toolkit_capi_loader.dll', or 'psvr2_toolkit_capi_loader.so' for Linux, is in rml_libs.", ex);
+                        "Make sure 'psvr2_toolkit_capi_loader.dll', or 'libpsvr2_toolkit_capi_loader.so' for Linux, is in rml_libs.", ex);
                 }
 
                 if (_moduleHandle == IntPtr.Zero)
