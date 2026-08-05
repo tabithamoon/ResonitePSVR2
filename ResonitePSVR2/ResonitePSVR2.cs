@@ -40,7 +40,13 @@ public partial class ResonitePSVR2 : ResoniteMod {
 			}
 
 			// Stop IPC client on engine shutdown
-			engine.OnShutdown += () => PSVR2ToolkitCAPI.Deinit();
+			engine.OnShutdown += () => {
+				try {
+					PSVR2ToolkitCAPI.Deinit();
+				} catch (Exception ex) {
+					Msg($"Error during PSVR2 Toolkit CAPI Teardown: {ex.Message}");
+				}
+			};
 			
 			try {
 				if (EnableEyeTracking) engine.InputInterface.RegisterInputDriver(new EyeTrackingDriver());
