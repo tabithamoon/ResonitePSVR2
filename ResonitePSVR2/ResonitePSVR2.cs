@@ -4,6 +4,8 @@ using FrooxEngine;
 using HarmonyLib;
 using ResoniteModLoader;
 
+using ResonitePSVR2.PSVR2Toolkit;
+
 namespace ResonitePSVR2;
 
 public partial class ResonitePSVR2 : ResoniteMod {
@@ -23,13 +25,13 @@ public partial class ResonitePSVR2 : ResoniteMod {
 		Engine engine = Engine.Current;
 		engine.RunPostInit(() => {
 			Msg("Loaded ResonitePSVR2.");
-			if (!ToolkitInterop.IpcClient.Instance().Start()) {
+			if (PSVR2ToolkitCAPI.Init() != 0) {
 				Msg("Failed to connect to PSVR2Tookit.");
 				return;
 			}
 
 			// Stop IPC client on engine shutdown
-			engine.OnShutdown += () => ToolkitInterop.IpcClient.Instance().Stop();
+			engine.OnShutdown += () => PSVR2ToolkitCAPI.Deinit();
 			
 			try {
 				if (EnableEyeTracking) engine.InputInterface.RegisterInputDriver(new EyeTrackingDriver());

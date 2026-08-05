@@ -2,17 +2,16 @@
 
 using Elements.Core;
 using FrooxEngine;
-using ResonitePSVR2.ToolkitInterop;
+using ResonitePSVR2.PSVR2Toolkit;
 
 namespace ResonitePSVR2;
 
 public class EyeTrackingDriver : IInputDriver {
 	// Blink smoothing lerp vars
-	// There's probably a better way to do this...
 	private float _leftIntermediate, _rightIntermediate, _leftOpen, _rightOpen, _leftOpenTarget, _rightOpenTarget;
 	private bool _lerpInitialized;
 	
-	private CommandDataServerGazeDataResult2 _gazeData;
+	private hmd2_gaze_status_t _gazeStatus;
 	public int UpdateOrder => 100;
 	private Eyes? _eyes;
 	
@@ -38,10 +37,12 @@ public class EyeTrackingDriver : IInputDriver {
 		}
 
 		_eyes.IsEyeTrackingActive = true;
-		_gazeData = IpcClient.Instance().RequestEyeTrackingData();
+		
+		// Don't update the eyes if we can't get gaze data
+		if (!PSVR2ToolkitCAPI.GetGazeStatus(ref _gazeStatus, 50)) return;
 
 		// Updates left, right and combined
-		UpdateEyes(_eyes, _gazeData.leftEye, _gazeData.rightEye);
+		UpdateEyes(_eyes);
 		
 		_eyes.ComputeCombinedEyeParameters();
 		_eyes.ConvergenceDistance = 0f;
@@ -50,47 +51,46 @@ public class EyeTrackingDriver : IInputDriver {
 	}
 
 	// Bulk of the work here
-	private void UpdateEyes(Eyes eyes, GazeEyeResult2 leftEye, GazeEyeResult2 rightEye) {
+	private void UpdateEyes(Eyes eyes) {
 		eyes.LeftEye.IsDeviceActive = true;
 		eyes.RightEye.IsDeviceActive = true;
 		eyes.CombinedEye.IsDeviceActive = true;
+
+		// Get gaze data
+		hmd2_gaze_wearable_data_t gazeData = _gazeStatus.wearable;
 		
 		// Gazes
-		if (leftEye.isGazeDirValid) {
+		if (_gazeStatus.wearable.left.is_gaze_origin_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE) {
 			eyes.LeftEye.IsTracking = true;
-			eyes.LeftEye.UpdateWithDirection(GetGazeDirection(leftEye));
+			eyes.LeftEye.UpdateWithDirection(GetGazeDirection(gazeData.left.gaze_dir_norm));
 		}
 
-		if (rightEye.isGazeDirValid) {
+		if (_gazeStatus.wearable.right.is_gaze_origin_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE) {
 			eyes.RightEye.IsTracking = true;
-			eyes.RightEye.UpdateWithDirection(GetGazeDirection(rightEye));
+			eyes.RightEye.UpdateWithDirection(GetGazeDirection(gazeData.right.gaze_dir_norm));
 		}
 
-		if (leftEye.isGazeDirValid && rightEye.isGazeDirValid) {
+		if (_gazeStatus.wearable.is_gaze_origin_combined_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE) {
 			eyes.CombinedEye.IsTracking = true;
-			eyes.CombinedEye.UpdateWithDirection(
-				MathX.Average(GetGazeDirection(leftEye), GetGazeDirection(rightEye))
-			);
+			eyes.CombinedEye.UpdateWithDirection(GetGazeDirection(gazeData.gaze_dir_combined_norm));
 		}
 		
 		// Pupil dilation
-		if (leftEye.isPupilDiaValid)
-			eyes.LeftEye.PupilDiameter = leftEye.pupilDiaMm / 1000;
+		if (gazeData.left.is_pupil_dia_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE)
+			eyes.LeftEye.PupilDiameter = gazeData.left.pupil_dia_mm / 1000;
 		
-		if (rightEye.isPupilDiaValid)
-			eyes.RightEye.PupilDiameter = rightEye.pupilDiaMm / 1000;
+		if (gazeData.right.is_pupil_dia_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE)
+			eyes.RightEye.PupilDiameter = gazeData.right.pupil_dia_mm / 1000;
 
-		if (leftEye.isPupilDiaValid && rightEye.isPupilDiaValid)
-			eyes.CombinedEye.PupilDiameter = MathX.Average(leftEye.pupilDiaMm, rightEye.pupilDiaMm) / 1000;
+		if ((gazeData.left.is_pupil_dia_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE) && (gazeData.right.is_pupil_dia_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE))
+			eyes.CombinedEye.PupilDiameter = MathX.Average(gazeData.left.pupil_dia_mm, gazeData.right.pupil_dia_mm) / 1000;
 		
-		// Openness
-		if (ResonitePSVR2.EnableEyeLidEstimation && leftEye.isOpenEnabled && rightEye.isOpenEnabled) {
-			_leftOpenTarget = leftEye.open;
-			_rightOpenTarget = rightEye.open;
-		} else {
-			if (leftEye.isBlinkValid) _leftOpenTarget = leftEye.blink ? 0f : 1f;
-			if (rightEye.isBlinkValid) _rightOpenTarget = rightEye.blink ? 0f : 1f;
-		}
+		// Blink
+		if (gazeData.left.is_blink_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE)
+			_leftOpenTarget = gazeData.left.blink == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE ? 0f : 1f;
+		
+		if (gazeData.right.is_blink_valid == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE)
+			_rightOpenTarget = gazeData.right.blink == hmd2_gaze_bool_t.HMD2_GAZE_BOOL_TRUE ? 0f : 1f;
 
 		// Check if userspace exists before getting deltas from it. Oops!
 		if (ResonitePSVR2.EnableBlinkFiltering && Userspace.Current != null) {
@@ -118,17 +118,17 @@ public class EyeTrackingDriver : IInputDriver {
 			_leftOpen = _leftOpenTarget;
 			_rightOpen = _rightOpenTarget;
 		}
-
+		
 		eyes.LeftEye.Openness = _leftOpen;
 		eyes.RightEye.Openness = _rightOpen;
 		eyes.CombinedEye.Openness = MathX.Average(_leftOpen, _rightOpen);
 	}
 
-	private float3 GetGazeDirection(GazeEyeResult2 trackingData) {
+	private float3 GetGazeDirection(hmd2_gaze_vec3_t eyeGazeVec3) {
 		return new float3(
-			-trackingData.gazeDirNorm.x,
-			trackingData.gazeDirNorm.y,
-			trackingData.gazeDirNorm.z
+			-eyeGazeVec3.x,
+			eyeGazeVec3.y,
+			eyeGazeVec3.z
 		);
 	}
 }
