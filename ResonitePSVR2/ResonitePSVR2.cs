@@ -7,7 +7,7 @@ using ResonitePSVR2.PSVR2Toolkit;
 namespace ResonitePSVR2;
 
 public partial class ResonitePSVR2 : ResoniteMod {
-	internal const string VERSION_CONSTANT = "1.1.2";
+	internal const string VERSION_CONSTANT = "1.2.1";
 	public override string Name => "ResonitePSVR2";
 	public override string Author => "tabithamoon";
 	public override string Version => VERSION_CONSTANT;
