@@ -1,7 +1,9 @@
+<sub>*Like this software? Support me by buying me a [ko-fi](https://ko-fi.com/tabithamoon) or sending a few bucks on [Liberapay](https://liberapay.com/tabithamoon/), thank you!*
+#
 <p align="center"><img src="https://github.com/tabithamoon/ResonitePSVR2/blob/35f9aa857aca1230f785b33edf2a02657b54426e/assets/Icon.png?raw=true" width="128" height="128"></p>
 <h1 align="center">ResonitePSVR2</h1>
 
-A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that enables PlayStation VR2 specific features, via whatdahopper's [PSVR2Toolkit](https://github.com/BnuuySolutions/PSVR2Toolkit).
+A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that enables PlayStation VR2 specific features, via [PSVR2Toolkit](https://github.com/BnuuySolutions/PSVR2Toolkit).
 
 ## Currently supported features
 - Eye tracking (per-eye gaze, binary per-eye blink, dilation, optional binary blink filtering)
