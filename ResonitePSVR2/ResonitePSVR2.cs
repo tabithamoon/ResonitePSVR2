@@ -2,12 +2,12 @@ using System;
 using FrooxEngine;
 using HarmonyLib;
 using ResoniteModLoader;
-using ResonitePSVR2.PSVR2Toolkit;
+using ResonitePSVR2.ToolkitInterop;
 
 namespace ResonitePSVR2;
 
 public partial class ResonitePSVR2 : ResoniteMod {
-	internal const string VERSION_CONSTANT = "1.2.1";
+	internal const string VERSION_CONSTANT = "1.2.2";
 	public override string Name => "ResonitePSVR2";
 	public override string Author => "tabithamoon";
 	public override string Version => VERSION_CONSTANT;
@@ -25,10 +25,10 @@ public partial class ResonitePSVR2 : ResoniteMod {
 			Msg("Loaded ResonitePSVR2.");
 			int initCode;
 
-			// Blow up if we can't load psvr2_toolkit_capi_loader
+			// Blow up if we can't load PSVR2Toolkit
 			try {
 				initCode = PSVR2ToolkitCAPI.Init();
-			} catch (DllNotFoundException ex) {
+			} catch (Exception ex) {
 				Msg($"{ex.Message}");
 				return;
 			}

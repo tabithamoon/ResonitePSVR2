@@ -1,8 +1,7 @@
 ﻿using System;
-
 using Elements.Core;
 using FrooxEngine;
-using ResonitePSVR2.PSVR2Toolkit;
+using ResonitePSVR2.ToolkitInterop;
 
 namespace ResonitePSVR2;
 
