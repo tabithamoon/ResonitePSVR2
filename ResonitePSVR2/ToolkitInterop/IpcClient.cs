@@ -503,11 +503,12 @@ namespace ResonitePSVR2.ToolkitInterop
 	        if (libraryName == "psvr2_toolkit_capi_loader")
 	        {
 		        var asmPath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+		        
 		        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-			        return NativeLibrary.Load(System.IO.Path.Combine(asmPath, @"\..\rml_libs\psvr2_toolkit_capi_loader.dll"));
-		        } else {
-			        return NativeLibrary.Load(System.IO.Path.Combine(asmPath, "/../rml_libs/libpsvr2_toolkit_capi_loader.so"));
+			        return NativeLibrary.Load(asmPath + @"\..\rml_libs\psvr2_toolkit_capi_loader.dll");
 		        }
+		        
+		        return NativeLibrary.Load(asmPath + "/../rml_libs/libpsvr2_toolkit_capi_loader.so");
 	        }
 
 	        // ...for everything else, hand it back to the runtime to figure it out
