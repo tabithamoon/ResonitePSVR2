@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace ResonitePSVR2.ToolkitInterop
@@ -403,16 +404,8 @@ namespace ResonitePSVR2.ToolkitInterop
 
                 try
                 {
-	                var asmPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-	                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-		                if (Win32LoadLibrary(asmPath + "\\..\\rml_libs\\psvr2_toolkit_capi_loader.dll") == IntPtr.Zero) {
-			                throw new DllNotFoundException();
-		                }
-	                } else {
-		                if (UnixDlopen(asmPath + "/../rml_libs/libpsvr2_toolkit_capi_loader.so", 2) == IntPtr.Zero) {
-			                throw new DllNotFoundException();
-		                }
-	                }
+	                // Handle loading psvr2_toolkit_capi_loader ourselves so we can fish it from rml_libs
+	                NativeLibrary.SetDllImportResolver(typeof(PSVR2ToolkitCAPI).Assembly, DllImportResolver);
 	                
                     _moduleHandle = psvr2_toolkit_loader_get_module_handle();
                 }
@@ -420,7 +413,7 @@ namespace ResonitePSVR2.ToolkitInterop
                 {
                     throw new DllNotFoundException(
                         "Could not load the loader library 'psvr2_toolkit_capi_loader'. " +
-                        "Make sure 'psvr2_toolkit_capi_loader.dll', or 'libpsvr2_toolkit_capi_loader.so' for Linux, is in rml_libs.", ex);
+                        "Make sure 'psvr2_toolkit_capi_loader.dll' is in your application directory or search path.", ex);
                 }
 
                 if (_moduleHandle == IntPtr.Zero)
@@ -494,22 +487,33 @@ namespace ResonitePSVR2.ToolkitInterop
                 }
             }
         }
-        
+
         [DllImport("kernel32.dll", EntryPoint = "GetProcAddress", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
         private static extern IntPtr Win32GetProcAddress(IntPtr hModule, string procName);
 
-        [DllImport("kernel32.dll", EntryPoint = "LoadLibrary", CharSet = CharSet.Ansi, SetLastError = true)]
-        private static extern IntPtr Win32LoadLibrary(string lpFileName);
-        
-        [DllImport("libdl", EntryPoint = "dlopen", CharSet = CharSet.Ansi)]
-        private static extern IntPtr UnixDlopen(string fileName, int flags);
-        
         [DllImport("libdl", EntryPoint = "dlsym", CharSet = CharSet.Ansi)]
         private static extern IntPtr UnixDlsym(IntPtr handle, string symbol);
 
         [DllImport("libdl.so.2", EntryPoint = "dlsym", CharSet = CharSet.Ansi)]
         private static extern IntPtr UnixDlsym2(IntPtr handle, string symbol);
 
+        private static IntPtr DllImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
+	        // Handle loading psvr2_toolkit_capi_loader ourselves...
+	        if (libraryName == "psvr2_toolkit_capi_loader")
+	        {
+		        var asmPath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+		        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+			        return NativeLibrary.Load(System.IO.Path.Combine(asmPath, @"\..\rml_libs\psvr2_toolkit_capi_loader.dll"));
+		        } else {
+			        return NativeLibrary.Load(System.IO.Path.Combine(asmPath, "/../rml_libs/libpsvr2_toolkit_capi_loader.so"));
+		        }
+	        }
+
+	        // ...for everything else, hand it back to the runtime to figure it out
+	        return IntPtr.Zero;
+        }
+        
         #region Public API Methods
 
         public static int Init()
